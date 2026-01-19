@@ -18,6 +18,7 @@ public class Utilisateur {
     public int getIdUtil() { return idUtil; }
     public String getUsername() { return username; }
     public String getRole() { return role; }
+    public String getMdp() { return mdp; } // Ajouté
 
     public void setUsername(String username) { this.username = username; }
     public void setRole(String role) { this.role = role; }

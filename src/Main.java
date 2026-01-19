@@ -2,17 +2,21 @@ import dao.*;
 
 import model.*;
 
-
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import exception.AuthentificationException;
+import exception.StockInsuffisantException;
 
 import java.util.Date;
 
 //this is the main class to test the DAO functionalities
 public class Main {
-    public static void main(String[] args) {
-        testerApprovisionnement();
+    public static void main(String[] args) throws AuthentificationException {
+        //testerGestionFournisseurEtCommande();
+        //testerProcessusVente();
+        testerAuthentification();
        /*  // ======= Test ProduitDAO avant vente =======
         ProduitDAO produitDAO = new ProduitDAO();
 
@@ -94,42 +98,114 @@ public class Main {
             System.out.println("Client non trouvé");
         }*/ 
             }
-        public static void testerApprovisionnement() {
+        /*public static void testerApprovisionnement() {
         FournisseurDAO fDao = new FournisseurDAO();
         CommandeDAO cDao = new CommandeDAO();
         ProduitDAO pDao = new ProduitDAO();
 
-        System.out.println("=== TEST RÉAPPROVISIONNEMENT ===");
+        
+    } */
+    public static void testerGestionFournisseurEtCommande() {
+        FournisseurDAO fDao = new FournisseurDAO();
+        CommandeDAO cDao = new CommandeDAO();
+        ProduitDAO pDao = new ProduitDAO();
 
-        // 1. Créer et ajouter un fournisseur
-        Fournisseur nouveauFou = new Fournisseur(0, "PharmaPlus", "0102030405");
+        System.out.println("=== DEBUT DU TEST APPROVISIONNEMENT ===");
+
+        // 1. TEST FOURNISSEUR
+        // On crée un fournisseur (id 0 car auto-incrémenté)
+        Fournisseur nouveauFou = new Fournisseur(0, "PharmaGrossiste", "Contact@pharma.com");
         fDao.ajouter(nouveauFou);
-        System.out.println("1. Fournisseur 'PharmaPlus' ajouté.");
-
-        // 2. Vérifier un produit avant la commande (ex: ID 1)
-        Produit pInitial = pDao.trouverParId(1);
-        if (pInitial == null) {
-            System.out.println("Erreur : Le produit avec l'ID 1 n'existe pas dans la base.");
-            return;
+        
+        // On vérifie s'il est bien en base
+        System.out.println("Liste des fournisseurs en base :");
+        for(Fournisseur f : fDao.lireTous()) {
+            System.out.println("- ID: " + f.getIdFour() + " | Nom: " + f.getNom());
         }
-        int stockAvant = pInitial.getQuantite();
-        System.out.println("2. Stock actuel du produit '" + pInitial.getNomProduit() + "' : " + stockAvant);
 
-        // 3. Créer une commande (idFournisseur: 1, idUtilisateur: 1, montant: 500.0)
-        // Note : Assurez-vous que l'utilisateur 1 existe dans votre table utilisateur
-        cDao.creerCommande(1, 1, 500.0);
-        System.out.println("3. Commande créée en statut 'en_attente'.");
+        // 2. TEST COMMANDE (On utilise l'ID 1 pour le test)
+        System.out.println("\n--- Création d'une commande ---");
+        cDao.creerCommande(1); // On commande au fournisseur n°1
 
-        // 4. Simuler la réception (idCommande: 1, idProduit: 1, quantité: 50)
-        System.out.println("4. Validation de la réception (Arrivée de 50 unités)...");
-        boolean succes = cDao.validerReception(1, 1, 50);
+        // 3. TEST RÉCEPTION & STOCK
+        // Imaginons que le produit n°1 (Doliprane) a 10 unités en stock
+        Produit p = pDao.trouverParId(1);
+        if (p != null) {
+            System.out.println("Stock avant réception de " + p.getNomProduit() + " : " + p.getQuantite());
+            
+            // On valide la réception de la commande n°1 pour le produit n°1 (quantité +50)
+            System.out.println("Validation de la réception de 50 unités...");
+            boolean succes = cDao.validerReception(1, 1, 50);
 
-        if (succes) {
-            // 5. Vérifier si le stock a bien augmenté
-            Produit pApres = pDao.trouverParId(1);
-            System.out.println("5. Succès ! Nouveau stock : " + pApres.getQuantite() + " (Ancien : " + stockAvant + ")");
+            if (succes) {
+                Produit pApres = pDao.trouverParId(1);
+                System.out.println("Nouveau stock après réception : " + pApres.getQuantite());
+            }
         } else {
-            System.out.println("Échec de la validation.");
+            System.out.println("Erreur : Le produit ID 1 n'existe pas pour le test.");
+        }
+
+        System.out.println("=== FIN DU TEST ===");
+    }
+public static void testerProcessusVente() {
+        VenteDAO venteDAO = new VenteDAO();
+        ProduitDAO produitDAO = new ProduitDAO();
+        
+        System.out.println("=== DEBUT DU TEST DE VENTE ===");
+
+        try {
+            // 1. Préparation des données de la vente
+            // Imaginons : Vente faite par l'Utilisateur 1 au Client 1
+            int idUser = 1;
+            int idClient = 1;
+            
+            // 2. Création du panier (Liste de produits à vendre)
+            List<Correspond> panier = new ArrayList<>();
+            
+            // Produit 1 : On en veut 2 unités (Vérifiez que l'ID 1 existe en base)
+            panier.add(new Correspond(0, 1, 2, 20.0)); 
+            
+            // Produit 2 : On en veut 1 unité (Vérifiez que l'ID 2 existe en base)
+            panier.add(new Correspond(0, 2, 49, 15.5));
+
+            // 3. Calcul du montant total
+            double total = 0;
+            for(Correspond c : panier) total += c.getMontant();
+
+            // 4. Création de l'objet Vente
+            Vente nouvelleVente = new Vente(0, total, new Date(), idUser, idClient);
+
+            // 5. Tentative d'enregistrement
+            System.out.println("Tentative d'enregistrement de la vente...");
+            boolean succes = venteDAO.enregistrerVente(nouvelleVente, panier);
+
+            if (succes) {
+                System.out.println("✅ Vente réussie et stock mis à jour !");
+            }
+
+        } catch (StockInsuffisantException e) {
+            // C'est ici que votre exception personnalisée est rattrapée
+            System.err.println("❌ ECHEC DE VENTE : " + e.getMessage());
+        } catch (Exception e) {
+            // Pour toutes les autres erreurs (SQL, Connexion, etc.)
+            System.err.println("⚠️ ERREUR TECHNIQUE : " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        System.out.println("=== FIN DU TEST ===");
+    }
+    public static void testerAuthentification() {
+        UtilisateurDAO uDao = new UtilisateurDAO();
+        System.out.println("=== TEST AUTHENTIFICATION CORRIGÉ ===");
+
+        try {
+            // Test avec les noms de colonnes désormais corrects dans le DAO
+            Utilisateur user = uDao.authentifier("admin1", "mdp_hash_admin"); 
+            System.out.println("✅ Succès ! Connecté en tant que : " + user.getUsername());
+        } catch (AuthentificationException e) {
+            System.out.println("❌ " + e.getMessage());
+        } catch (RuntimeException e) {
+            System.out.println("⚠️ Erreur : " + e.getMessage());
         }
     }
 }

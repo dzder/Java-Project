@@ -4,7 +4,7 @@ import model.Produit;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-
+import exception.StockInsuffisantException;
 public class ProduitDAO {
 
     // 1. LIRE TOUS LES PRODUITS
@@ -75,20 +75,22 @@ public class ProduitDAO {
 
     // 4. METTRE À JOUR LE STOCK (Utilisé après une vente ou un achat)
     // Utilisez une valeur négative pour diminuer le stock, positive pour l'augmenter
-    public void modifierStock(int idProduit, int variation) {
-        String sql = "UPDATE produit SET quantite = quantite + ? WHERE idProduit = ?";
-
-        try (Connection conn = Database.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setInt(1, variation);
-            pstmt.setInt(2, idProduit);
-            pstmt.executeUpdate();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+    public void modifierStock(int idProduit, int variation) throws StockInsuffisantException, SQLException {
+    // 1. On vérifie d'abord le stock actuel
+    Produit p = trouverParId(idProduit);
+    if (p != null && (p.getQuantite() + variation) < 0) {
+        throw new StockInsuffisantException("Action impossible : Stock insuffisant pour " + p.getNomProduit());
     }
+
+    String sql = "UPDATE produit SET quantite = quantite + ? WHERE idProduit = ?";
+    try (Connection conn = Database.getConnection();
+         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        pstmt.setInt(1, variation);
+        pstmt.setInt(2, idProduit);
+        pstmt.executeUpdate();
+    } 
+    // On ne fait plus e.printStackTrace() ici, on laisse l'erreur remonter au Menu
+}
 
     // 5. LIRE LES ALERTES (Stock critique)
     public List<Produit> lireAlertes() {

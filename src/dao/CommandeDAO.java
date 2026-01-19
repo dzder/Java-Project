@@ -4,9 +4,9 @@ import java.sql.*;
 
 public class CommandeDAO {
 
-    // 1. Créer une nouvelle commande
-    public void creerCommande(int idFour, double montant) {
-        // Correction : nom de la table 'commandeFournisseur' et colonne 'idFour'
+    // 1. Créer une nouvelle commande (Sans idUtil)
+    public void creerCommande(int idFour) {
+        // La requête SQL correspond maintenant strictement à votre CREATE TABLE
         String sql = "INSERT INTO commandeFournisseur (dateCommande, statut, idFour) VALUES (NOW(), 'en_attente', ?)";
         
         try (Connection conn = Database.getConnection();
@@ -14,49 +14,45 @@ public class CommandeDAO {
             
             pstmt.setInt(1, idFour);
             pstmt.executeUpdate();
-            System.out.println("Succès : Commande créée dans 'commandeFournisseur'.");
+            System.out.println("Succès : Commande fournisseur créée.");
             
         } catch (SQLException e) {
-            System.err.println("Erreur SQL (creerCommande) : " + e.getMessage());
+            System.err.println("Erreur SQL lors de la création de commande : " + e.getMessage());
         }
     }
 
-    // 2. Valider la réception : Met à jour le statut ET le stock produit
+    // 2. Valider la réception (Met à jour le statut et augmente le stock)
     public boolean validerReception(int idCommande, int idProduit, int quantiteRecue) {
         Connection conn = null;
         try {
             conn = Database.getConnection();
-            conn.setAutoCommit(false); // Début de la transaction
+            conn.setAutoCommit(false); // Sécurité : Tout ou rien
 
-            // A. Mise à jour du statut dans commandeFournisseur
+            // A. Marquer la commande comme 'recu'
             String sqlStatut = "UPDATE commandeFournisseur SET statut = 'recu' WHERE idCommande = ?";
             PreparedStatement pstmtStatut = conn.prepareStatement(sqlStatut);
             pstmtStatut.setInt(1, idCommande);
-            int resStatut = pstmtStatut.executeUpdate();
+            int rowsStatut = pstmtStatut.executeUpdate();
 
-            // B. Mise à jour du stock dans la table produit
+            // B. Ajouter la quantité au stock du produit
             String sqlStock = "UPDATE produit SET quantite = quantite + ? WHERE idProduit = ?";
             PreparedStatement pstmtStock = conn.prepareStatement(sqlStock);
             pstmtStock.setInt(1, quantiteRecue);
             pstmtStock.setInt(2, idProduit);
-            int resStock = pstmtStock.executeUpdate();
+            int rowsStock = pstmtStock.executeUpdate();
 
-            // Vérification que les deux updates ont touché une ligne
-            if (resStatut > 0 && resStock > 0) {
+            if (rowsStatut > 0 && rowsStock > 0) {
                 conn.commit();
-                System.out.println("Stock mis à jour et commande marquée comme 'recu'.");
+                System.out.println("Réception validée : Stock mis à jour !");
                 return true;
             } else {
                 conn.rollback();
-                System.err.println("Échec : Commande ou Produit introuvable. Annulation.");
+                System.err.println("Erreur : Commande ou Produit introuvable.");
                 return false;
             }
-
         } catch (SQLException e) {
-            if (conn != null) {
-                try { conn.rollback(); } catch (SQLException ex) { ex.printStackTrace(); }
-            }
-            System.err.println("Erreur lors de la réception : " + e.getMessage());
+            if (conn != null) try { conn.rollback(); } catch (SQLException ex) { ex.printStackTrace(); }
+            e.printStackTrace();
             return false;
         } finally {
             try { if (conn != null) conn.close(); } catch (SQLException e) { e.printStackTrace(); }
