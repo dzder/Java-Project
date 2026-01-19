@@ -1,12 +1,19 @@
-import dao.ClientDAO;
-import dao.ProduitDAO;
-import model.Produit;
+import dao.*;
+
+import model.*;
+
+
+import java.util.ArrayList;
 import java.util.List;
-import dao.ClientDAO;
-import model.Client;
+
+
+import java.util.Date;
+
+//this is the main class to test the DAO functionalities
 public class Main {
     public static void main(String[] args) {
-                // ======= Test ProduitDAO =======
+        testerApprovisionnement();
+       /*  // ======= Test ProduitDAO avant vente =======
         ProduitDAO produitDAO = new ProduitDAO();
 
         // 1. Lire tous les produits
@@ -15,32 +22,52 @@ public class Main {
         for (Produit p : allProduits) {
             System.out.println("ID: " + p.getIdProduit() + " | " + p.getNomProduit() + " | Prix: " + p.getPrix() + "€ | Stock: " + p.getQuantite());
         }
+         // ======= Test VenteDAO =======
+        System.out.println("\n\n========== TEST VENTEDAO ==========\n");
+        VenteDAO venteDAO = new VenteDAO();
 
-        // 2. Ajouter un nouveau produit
-        System.out.println("\n=== Ajout d'un produit ===");
-        Produit newProduit = new Produit(0, "Aspirine", 3.50, 100, 15);
-        produitDAO.ajouter(newProduit);
-        System.out.println("Aspirine ajoutée!");
-
-        // 3. Trouver un produit par ID
-        System.out.println("\n=== Recherche par ID ===");
-        Produit found = produitDAO.trouverParId(1);
-        if (found != null) {
-            System.out.println("Produit trouvé: " + found.getNomProduit());
+        // Créer une nouvelle vente
+        System.out.println("=== Enregistrement d'une vente ===");
+        Vente newVente = new Vente(0, 0, new Date(), 1, 1); // idUtil=1, idClient=1
+        
+        // Créer les produits vendus (avec quantités et montants)
+        List<Correspond> produitsVendus = new ArrayList<>();
+        produitsVendus.add(new Correspond(0, 1, 2, 10.00));  // Produit ID 1: 2 unités à 10€
+        produitsVendus.add(new Correspond(0, 2, 1, 15.50));  // Produit ID 2: 1 unité à 15.50€
+        produitsVendus.add(new Correspond(0, 3, 3, 25.00));  // Produit ID 3: 3 unités à 25€
+        
+        // Calculer le montant total
+        double montantTotal = 0;
+        for (Correspond c : produitsVendus) {
+            montantTotal += c.getMontant();
+        }
+        newVente.setMontantVente(montantTotal);
+        
+        System.out.println("Montant total de la vente: " + montantTotal + "€");
+        System.out.println("Nombre de produits: " + produitsVendus.size());
+        
+        // Enregistrer la vente
+        boolean success = venteDAO.enregistrerVente(newVente, produitsVendus);
+        if (success) {
+            System.out.println("✓ Vente enregistrée avec succès !");
+        } else {
+            System.out.println("✗ Erreur lors de l'enregistrement de la vente");
         }
 
-        // 4. Afficher les alertes (stock critique)
-        System.out.println("\n=== Produits en stock critique ===");
-        List<Produit> alertes = produitDAO.lireAlertes();
-        for (Produit p : alertes) {
-            System.out.println(p.getNomProduit() + " : " + p.getQuantite() + " restant (seuil: " + p.getSeuilMinimal() + ")");
+        
+         
+                // ======= Test ProduitDAO apres vente =======
+        
+
+        // 1. Lire tous les produits
+        System.out.println("\n=== Tous les produits ===");
+        List<Produit> allProduits1 = produitDAO.lireTous();
+        for (Produit p : allProduits1) {
+            System.out.println("ID: " + p.getIdProduit() + " | " + p.getNomProduit() + " | Prix: " + p.getPrix() + "€ | Stock: " + p.getQuantite());
         }
 
-        // 5. Modifier le stock (exemple: vente de 5 unités du produit 1)
-        System.out.println("\n=== Modification du stock ===");
-        produitDAO.modifierStock(1, -5);
-        System.out.println("Stock du produit 1 diminué de 5 unités");
-                // ======= Test ClientDAO =======
+        
+                // ======= Test ClientDAO =======*/
         /*ClientDAO clientDAO = new ClientDAO();
 
         // 1. Ajouter un client
@@ -65,6 +92,44 @@ public class Main {
             System.out.println("Client trouvé: " + found.getNomPrenom() + " (" + found.getMail() + ")");
         } else {
             System.out.println("Client non trouvé");
-        }*/
-            } 
+        }*/ 
+            }
+        public static void testerApprovisionnement() {
+        FournisseurDAO fDao = new FournisseurDAO();
+        CommandeDAO cDao = new CommandeDAO();
+        ProduitDAO pDao = new ProduitDAO();
+
+        System.out.println("=== TEST RÉAPPROVISIONNEMENT ===");
+
+        // 1. Créer et ajouter un fournisseur
+        Fournisseur nouveauFou = new Fournisseur(0, "PharmaPlus", "0102030405");
+        fDao.ajouter(nouveauFou);
+        System.out.println("1. Fournisseur 'PharmaPlus' ajouté.");
+
+        // 2. Vérifier un produit avant la commande (ex: ID 1)
+        Produit pInitial = pDao.trouverParId(1);
+        if (pInitial == null) {
+            System.out.println("Erreur : Le produit avec l'ID 1 n'existe pas dans la base.");
+            return;
+        }
+        int stockAvant = pInitial.getQuantite();
+        System.out.println("2. Stock actuel du produit '" + pInitial.getNomProduit() + "' : " + stockAvant);
+
+        // 3. Créer une commande (idFournisseur: 1, idUtilisateur: 1, montant: 500.0)
+        // Note : Assurez-vous que l'utilisateur 1 existe dans votre table utilisateur
+        cDao.creerCommande(1, 1, 500.0);
+        System.out.println("3. Commande créée en statut 'en_attente'.");
+
+        // 4. Simuler la réception (idCommande: 1, idProduit: 1, quantité: 50)
+        System.out.println("4. Validation de la réception (Arrivée de 50 unités)...");
+        boolean succes = cDao.validerReception(1, 1, 50);
+
+        if (succes) {
+            // 5. Vérifier si le stock a bien augmenté
+            Produit pApres = pDao.trouverParId(1);
+            System.out.println("5. Succès ! Nouveau stock : " + pApres.getQuantite() + " (Ancien : " + stockAvant + ")");
+        } else {
+            System.out.println("Échec de la validation.");
+        }
+    }
 }
