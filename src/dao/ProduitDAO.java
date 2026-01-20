@@ -4,7 +4,9 @@ import model.Produit;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import exception.StockInsuffisantException;
+
+import exception.*;
+
 public class ProduitDAO {
 
     // 1. LIRE TOUS LES PRODUITS
@@ -50,10 +52,10 @@ public class ProduitDAO {
     }
 
     // 3. TROUVER PAR ID (Utile pour les ventes)
-    public Produit trouverParId(int id) {
+    public Produit trouverParId(int id) throws EntityNotFoundException {
         String sql = "SELECT * FROM produit WHERE idProduit = ?";
         try (Connection conn = Database.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, id);
             try (ResultSet rs = pstmt.executeQuery()) {
@@ -65,21 +67,27 @@ public class ProduitDAO {
                         rs.getInt("quantite"),
                         rs.getInt("seuilMinimal")
                     );
+                } else {
+                    // Au lieu de retourner null, on lance l'exception
+                    throw new EntityNotFoundException("Le produit avec l'ID " + id + " n'existe pas.");
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Erreur SQL", e);
         }
-        return null;
     }
 
     // 4. METTRE À JOUR LE STOCK (Utilisé après une vente ou un achat)
     // Utilisez une valeur négative pour diminuer le stock, positive pour l'augmenter
     public void modifierStock(int idProduit, int variation) throws StockInsuffisantException, SQLException {
     // 1. On vérifie d'abord le stock actuel
-    Produit p = trouverParId(idProduit);
-    if (p != null && (p.getQuantite() + variation) < 0) {
-        throw new StockInsuffisantException("Action impossible : Stock insuffisant pour " + p.getNomProduit());
+    try {
+        Produit p = trouverParId(idProduit);
+        if ( (p.getQuantite() + variation) < 0) {
+            throw new StockInsuffisantException("Action impossible : Stock insuffisant pour " + p.getNomProduit());
+        }
+    } catch (EntityNotFoundException e) {
+        throw new RuntimeException("Erreur lors de la vérification du stock", e);
     }
 
     String sql = "UPDATE produit SET quantite = quantite + ? WHERE idProduit = ?";

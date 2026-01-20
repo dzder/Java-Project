@@ -15,8 +15,8 @@ public class FournisseurDAO {
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
                 fournisseurs.add(new Fournisseur(
-                    rs.getInt("idFournisseur"),
-                    rs.getString("nomFournisseur"),
+                    rs.getInt("idFour"),
+                    rs.getString("nom"),
                     rs.getString("contact")
                     
                 ));

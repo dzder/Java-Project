@@ -23,4 +23,8 @@ public class CommandeFournisseur {
     public int getIdFour() { return idFour; }
 
     public void setStatut(String statut) { this.statut = statut; }
+    public void setIdCommande(int idCommande) { this.idCommande = idCommande; }
+    public void setDateCmd(Date dateCommande) { this.dateCommande = dateCommande; }
+    public void setIdFour(int idFour) { this.idFour = idFour; }
+    
 }

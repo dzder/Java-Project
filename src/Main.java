@@ -129,6 +129,7 @@ public class Main {
 
         // 3. TEST RÉCEPTION & STOCK
         // Imaginons que le produit n°1 (Doliprane) a 10 unités en stock
+        
         Produit p = pDao.trouverParId(1);
         if (p != null) {
             System.out.println("Stock avant réception de " + p.getNomProduit() + " : " + p.getQuantite());

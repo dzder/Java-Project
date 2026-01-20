@@ -32,7 +32,7 @@ public class ClientDAO {
             System.out.println("Client ajouté avec succès !");
         } catch (SQLException e) { e.printStackTrace(); }
     }
-    public Client trouverParMail(String mail) {
+    public int trouverIdParEmail(String mail) {
     String sql = "SELECT * FROM client WHERE mail = ?";
     Client client = null;
 
@@ -54,7 +54,26 @@ public class ClientDAO {
     } catch (SQLException e) {
         System.err.println("Erreur lors de la recherche du client : " + e.getMessage());
     }
-    return client; // Retourne l'objet trouvé ou null s'il n'existe pas
+     // Retourne l'ID trouvé ou -1 s'il n'existe pas
+    return (client != null) ? client.getIdClient() : -1;
+    }
+    public List<Client> rechercherClients(String filtre) {
+    List<Client> liste = new ArrayList<>();
+    String sql = "SELECT * FROM client WHERE nomPrenom LIKE ? OR mail LIKE ?";
+    try (Connection conn = Database.getConnection();
+         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        pstmt.setString(1, "%" + filtre + "%");
+        pstmt.setString(2, "%" + filtre + "%");
+        ResultSet rs = pstmt.executeQuery();
+        while (rs.next()) {
+            liste.add(new Client(
+                rs.getInt("idClient"),
+                rs.getString("nomPrenom"),
+                rs.getString("mail")
+            ));
+        }
+    } catch (SQLException e) { e.printStackTrace(); }
+    return liste;
 }
 
-}
+    }

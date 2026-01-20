@@ -99,3 +99,22 @@ INSERT INTO concerne (idCommande, idProduit, quantite, montant) VALUES
 INSERT INTO correspond (idVente, idProduit, quantite, montant) VALUES
 (1, 1, 2, 11.00),
 (1, 3, 1, 12.00);
+SELECT * 
+FROM produit;
+SHOW CREATE TABLE correspond;
+SHOW CREATE TABLE concerne;
+-- Pour la table CORRESPOND (Ventes)
+ALTER TABLE correspond DROP FOREIGN KEY correspond_ibfk_2; -- Remplacez par le nom réel si différent
+ALTER TABLE correspond 
+ADD CONSTRAINT fk_produit_vente 
+FOREIGN KEY (idProduit) REFERENCES produit(idProduit) 
+ON DELETE CASCADE;
+
+-- Pour la table CONCERNE (Commandes)
+ALTER TABLE concerne DROP FOREIGN KEY concerne_ibfk_2; -- Remplacez par le nom réel si différent
+ALTER TABLE concerne 
+ADD CONSTRAINT fk_produit_commande 
+FOREIGN KEY (idProduit) REFERENCES produit(idProduit) 
+ON DELETE CASCADE;
+SELECT *
+FROM vente;
